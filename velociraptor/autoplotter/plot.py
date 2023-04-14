@@ -9,21 +9,17 @@ import unyt
 from matplotlib import rcParams
 
 from matplotlib.colors import LogNorm
-from velociraptor import VelociraptorCatalogue
+from velociraptor import Catalogue
 from velociraptor.autoplotter.objects import VelociraptorLine
 from typing import Tuple, Union
 
 import velociraptor.tools as tools
 
 
-def scatter_x_against_y(
-    x: unyt.unyt_array, y: unyt.unyt_array
-) -> Tuple[plt.Figure, plt.Axes]:
+def scatter_x_against_y(ax: plt.Axes, x: unyt.unyt_array, y: unyt.unyt_array) -> None:
     """
-    Creates a scatter of x against y (unyt arrays).
+    Plots a scatter of x against y (unyt arrays).
     """
-
-    fig, ax = plt.subplots()
 
     kwargs = dict(edgecolor="none", zorder=-100)
 
@@ -38,7 +34,7 @@ def scatter_x_against_y(
 
     ax.scatter(x.value, y.value, **kwargs)
 
-    return fig, ax
+    return
 
 
 def histogram_x_against_y(
@@ -128,7 +124,7 @@ def histogram(
 
 def decorate_axes(
     ax: plt.Axes,
-    catalogue: VelociraptorCatalogue,
+    catalogue: Catalogue,
     comment: Union[str, None] = None,
     legend_loc: str = "upper left",
     redshift_loc: str = "lower right",
