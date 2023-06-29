@@ -1,7 +1,7 @@
 """
-The velociraptor module. 
+The velociraptor module.
 
-More information is available in the documnetation.
+More information is available in the documentation.
 """
 
 # First things first, we need to upgrade msun and mh from a symbol to a
@@ -27,21 +27,22 @@ except RuntimeError:
     pass
 
 
-from velociraptor.catalogue.catalogue import VelociraptorCatalogue
+from velociraptor.catalogue.catalogue import Catalogue, CatalogueTypeError
+from velociraptor.catalogue.velociraptor_catalogue import VelociraptorCatalogue
+from velociraptor.catalogue.soap_catalogue import SOAPCatalogue
 from velociraptor.__version__ import __version__
 
-from typing import Union
+from typing import Union, List
 
 
 def load(
     filename: str,
     disregard_units: bool = False,
-    registration_file_path: Union[str, None] = None,
+    registration_file_path: Union[List[str], str, None] = None,
     mask: slice = Ellipsis,
-) -> VelociraptorCatalogue:
+) -> Catalogue:
     """
-    Loads a velociraptor catalogue, producing a VelociraptorCatalogue
-    object.
+    Loads a velociraptor catalogue, producing a Catalogue object.
 
     Parameters
     ----------
@@ -59,8 +60,8 @@ def load(
         star formation rate units are presented in non-internal
         units.
 
-    registration_file_path: str, optional
-        The filename of the derived quantities script to register
+    registration_file_path: Union[List[str], str], optional
+        The filename of the derived quantities script(s) to register
         additional properties with the catalogue. This is an
         advanced feature. See the documentation for more details.
 
@@ -73,14 +74,16 @@ def load(
     Returns
     -------
 
-    VelociraptorCatalogue
-        The VelociraptorCatalogue object that describes your
-        .properties file.
+    Catalogue
+        The Catalogue object that describes your .properties file.
     """
 
-    catalogue = VelociraptorCatalogue(
-        filename, disregard_units=disregard_units, mask=mask
-    )
+    try:
+        catalogue = VelociraptorCatalogue(
+            filename, disregard_units=disregard_units, mask=mask
+        )
+    except CatalogueTypeError:
+        catalogue = SOAPCatalogue(filename)
 
     if registration_file_path is not None:
         catalogue.register_derived_quantities(registration_file_path)

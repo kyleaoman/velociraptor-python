@@ -18,6 +18,7 @@ from velociraptor.tools.luminosity_functions import (
 )
 from velociraptor.tools.histogram import create_histogram_given_bins
 from velociraptor.tools.adaptive import create_adaptive_bins
+from velociraptor.autoplotter.box_size_correction import VelociraptorBoxSizeCorrection
 
 valid_line_types = [
     "median",
@@ -61,6 +62,8 @@ class VelociraptorLine(object):
     bins: unyt_array = None
     # Scatter can be: "none", "errorbar", or "shaded"
     scatter: str
+    # Box size correction?
+    box_size_correction: Union[None, VelociraptorBoxSizeCorrection]
     # Output: centers, values, scatter, additional_x, additional_y - initialised here
     # to prevent crashes in other code.
     output: Tuple[unyt_array] = (
@@ -71,7 +74,12 @@ class VelociraptorLine(object):
         unyt_array([]),
     )
 
-    def __init__(self, line_type: str, line_data: Dict[str, Union[Dict, str]]):
+    def __init__(
+        self,
+        line_type: str,
+        line_data: Dict[str, Union[Dict, str]],
+        box_size_correction: Union[None, VelociraptorBoxSizeCorrection] = None,
+    ):
         """
         Initialise a line with data from the yaml file.
         """
@@ -81,6 +89,8 @@ class VelociraptorLine(object):
 
         self.data = line_data
         self._parse_data()
+
+        self.box_size_correction = box_size_correction
 
         return
 
@@ -233,6 +243,15 @@ class VelociraptorLine(object):
         masked_x = x
         masked_y = y
 
+        # filter out NaN values to prevent crashes if all x values are NaN
+        if masked_y is not None:
+            mask = isnan(x) | isnan(y)
+            masked_x = masked_x[~mask]
+            masked_y = masked_y[~mask]
+        else:
+            mask = isnan(x)
+            masked_x = masked_x[~mask]
+
         if self.lower is not None:
             self.lower.convert_to_units(y.units)
             mask = masked_y > self.lower
@@ -265,6 +284,10 @@ class VelociraptorLine(object):
             mass_function_output = create_mass_function_given_bins(
                 masked_x, self.bins, box_volume=box_volume
             )
+            if self.box_size_correction is not None:
+                mass_function_output = self.box_size_correction.apply_mass_function_correction(
+                    mass_function_output
+                )
             self.output = (
                 *mass_function_output,
                 unyt_array([], units=mass_function_output[0].units),
@@ -309,6 +332,10 @@ class VelociraptorLine(object):
                 box_volume=box_volume,
                 return_bin_edges=True,
             )
+            if self.box_size_correction is not None:
+                mass_function_output = self.box_size_correction.apply_mass_function_correction(
+                    mass_function_output
+                )
             self.output = (
                 *mass_function_output,
                 unyt_array([], units=mass_function_output[0].units),

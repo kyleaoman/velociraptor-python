@@ -190,7 +190,7 @@ def registration_rotational_support(
 ) -> (unyt.Unit, str, str):
     """
     Registers rotational support quantities (those beginning with K).
-    Note that this corresponds to \kappa in Sales+2010 _not_ K.
+    Note that this corresponds to \\kappa in Sales+2010 _not_ K.
     """
 
     if not field_path[0] == "K":
@@ -451,7 +451,7 @@ def registration_star_formation_rate(
 
     unit = unit_system.star_formation_rate
 
-    full_name = r"Star Formation Rate $\dot{\rho}_*$"
+    full_name = "Star Formation Rate $\\dot{\\rho}_*$"
 
     return unit, full_name, field_path.lower()
 
@@ -716,7 +716,7 @@ def registration_veldisp(
         coordinate = match.group(1)
         ptype = match.group(2)
 
-        full_name = f"$\sigma_{{{{\\rm v}}, {coordinate.lower()}}}$"
+        full_name = f"$\\sigma_{{{{\\rm v}}, {coordinate.lower()}}}$"
 
         if ptype:
             full_name += f" ({ptype})"
@@ -1050,8 +1050,8 @@ def registration_cold_dense_gas_properties(
         except KeyError:
             raise RegistrationDoesNotMatchError
         full_name = (
-            f"{long_quantity} Masses in Cold, Dense ($T < 10^{{4.5}}\;{{\rm K}}$, "
-            f"$n_{{\\rm H}}$ > 0.1 \\; {{\rm cm^{{-3}}}}$) Gas ({aperture_size} kpc)"
+            f"{long_quantity} Masses in Cold, Dense ($T < 10^{{4.5}} [{{\\rm K}}]$, "
+            f"$n_{{\\rm H}}$ > 0.1 [{{\\rm cm^{{-3}}}}]$) Gas ({aperture_size} kpc)"
         )
         snake_case = f"cold_dense_{short_quantity}_mass_{aperture_size}_kpc"
         return unit, full_name, snake_case
@@ -1085,21 +1085,18 @@ def registration_log_element_ratios_times_masses(
             short_species = {
                 "LogOxygenOverHydrogen": "O_over_H",
                 "LogIronOverHydrogen": "Fe_over_H",
-                "LogSNIaIronOverHydrogen": "SNIaFe_over_H",
                 "LogOxygenOverHydrogenAtomic": "O_over_H_atomic",
                 "LogOxygenOverHydrogenMolecular": "O_over_H_molecular",
             }[long_species]
             element_name = {
                 "LogOxygenOverHydrogen": "Oxygen",
                 "LogIronOverHydrogen": "Iron",
-                "LogSNIaIronOverHydrogen": "SNIa Iron",
                 "LogOxygenOverHydrogenAtomic": "Atomic-phase Oxygen",
                 "LogOxygenOverHydrogenMolecular": "Molecular-phase Oxygen",
             }[long_species]
             fraction_name = {
                 "LogOxygenOverHydrogen": "O/H",
                 "LogIronOverHydrogen": "Fe/H",
-                "LogSNIaIronOverHydrogen": "Fe_SNIa/H",
                 "LogOxygenOverHydrogenAtomic": "O/H",
                 "LogOxygenOverHydrogenMolecular": "O/H",
             }[long_species]
@@ -1145,16 +1142,19 @@ def registration_lin_element_ratios_times_masses(
                 "TotalOxygenOverHydrogen": "O_over_H_total",
                 "OxygenOverHydrogen": "O_over_H",
                 "IronOverHydrogen": "Fe_over_H",
+                "IronfromSNIaOverHydrogen": "FeSNIa_over_H",
             }[long_species]
             element_name = {
                 "TotalOxygenOverHydrogen": "Oxygen",
                 "OxygenOverHydrogen": "Oxygen",
                 "IronOverHydrogen": "Iron",
+                "IronfromSNIaOverHydrogen": "SNIaIron",
             }[long_species]
             fraction_name = {
                 "TotalOxygenOverHydrogen": "O/H",
                 "OxygenOverHydrogen": "O/H",
                 "IronOverHydrogen": "Fe/H",
+                "IronfromSNIaOverHydrogen": "Fe(SNIa)/H",
             }[long_species]
         except KeyError:
             raise RegistrationDoesNotMatchError
@@ -1523,6 +1523,31 @@ def registration_element_masses_in_stars(
     return
 
 
+def registration_snia_rates(
+    field_path: str, unit_system: VelociraptorUnits
+) -> (unyt.Unit, str, str):
+    """
+    Registers the SNIa rates within apertures
+    """
+
+    unit = unit_system.velocity / unit_system.length
+    # Capture aperture size
+    match_string = "Aperture_SNIaRates_aperture_total_star_([0-9]*)_kpc"
+    regex = cached_regex(match_string)
+
+    match = regex.match(field_path)
+
+    if match:
+        aperture_size = match.group(1)
+
+        full_name = f"SNIa rate ({aperture_size} kpc)"
+        snake_case = f"snia_rates_{aperture_size}_kpc"
+
+        return unit, full_name, snake_case
+    else:
+        raise RegistrationDoesNotMatchError
+
+
 # TODO
 # lambda_B
 # q
@@ -1545,6 +1570,7 @@ def registration_element_masses_in_stars(
 global_registration_functions = {
     k: globals()[f"registration_{k}"]
     for k in [
+        "snia_rates",
         "metallicity",
         "ids",
         "energies",
