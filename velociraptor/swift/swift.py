@@ -7,6 +7,7 @@ datasets in a computationally efficient way.
 
 
 import swiftsimio
+from swiftsimio.objects import cosmo_array, cosmo_factor, a
 import numpy as np
 
 from velociraptor.particles.particles import VelociraptorParticles
@@ -56,20 +57,32 @@ def generate_spatial_mask(
             "Please use a particles instance with an associated halo " "catalogue."
         )
 
-    spatial_mask = [
+    units = particles.x.units
+    spatial_mask = cosmo_array(
         [
-            particles.x / length_factor - particles.r_size / length_factor,
-            particles.x / length_factor + particles.r_size / length_factor,
+            [
+                particles.x.to_value(units) / length_factor
+                - particles.r_size.to_value(units) / length_factor,
+                particles.x.to_value(units) / length_factor
+                + particles.r_size.to_value(units) / length_factor,
+            ],
+            [
+                particles.y.to_value(units) / length_factor
+                - particles.r_size.to_value(units) / length_factor,
+                particles.y.to_value(units) / length_factor
+                + particles.r_size.to_value(units) / length_factor,
+            ],
+            [
+                particles.z.to_value(units) / length_factor
+                - particles.r_size.to_value(units) / length_factor,
+                particles.z.to_value(units) / length_factor
+                + particles.r_size.to_value(units) / length_factor,
+            ],
         ],
-        [
-            particles.y / length_factor - particles.r_size / length_factor,
-            particles.y / length_factor + particles.r_size / length_factor,
-        ],
-        [
-            particles.z / length_factor - particles.r_size / length_factor,
-            particles.z / length_factor + particles.r_size / length_factor,
-        ],
-    ]
+        units,
+        comoving=True,
+        cosmo_factor=cosmo_factor(a ** 1, length_factor),
+    )
 
     swift_mask.constrain_spatial(spatial_mask)
 
@@ -98,16 +111,16 @@ def generate_bound_mask(
 
     particle_name_masks = {}
 
-    for particle_name in data.metadata.present_particle_names:
+    for particle_name in data.metadata.present_group_names:
         # This will change if we ever take advantage of the
         # parttypes available through velociraptor.
-        particle_name_masks[particle_name] = np.in1d(
-            getattr(data, particle_name).particle_ids, particles.particle_ids
+        particle_name_masks[particle_name] = np.isin(
+            getattr(data, particle_name).particle_ids.value, particles.particle_ids
         )
 
     # Finally we generate a named tuple with the correct fields and
     # fill it with the contents of our dictionary
-    MaskTuple = namedtuple("MaskCollection", data.metadata.present_particle_names)
+    MaskTuple = namedtuple("MaskCollection", data.metadata.present_group_names)
     mask = MaskTuple(**particle_name_masks)
 
     return mask
